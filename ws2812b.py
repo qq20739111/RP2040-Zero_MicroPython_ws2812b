@@ -15,7 +15,7 @@ def ws2812():
     label("do_zero")
     nop()                   .side(0)    [T2 - 1]
     wrap()
-    
+
 #delay here is the reset time. You need a pause to reset the LED strip back to the initial LED
 #however, if you have quite a bit of processing to do before the next time you update the strip
 #you could put in delay=0 (or a lower delay)
@@ -27,22 +27,32 @@ class ws2812b:
         self.num_leds = num_leds
         self.delay = delay
         self.brightnessvalue = 255
-
+    
     # Set the overal value to adjust brightness when updating leds
     def brightness(self, brightness = None):
         if brightness == None:
             return self.brightnessvalue
+        elif brightness < 1:
+            self.brightnessvalue = 1
+        elif brightness > 255:
+            self.brightnessvalue = 255
         else:
-            if (brightness < 1):
-                brightness = 1
-        if (brightness > 255):
-            brightness = 255
-        self.brightnessvalue = brightness
-
-      # Create a gradient with two RGB colors between "pixel1" and "pixel2" (inclusive)
+            self.brightnessvalue = brightness
+        return self.brightnessvalue
+    
+    # Check and Adjust each color values if out of range by LeiLei
+    def check_pixel_color_value(self, color_channel = 0):
+        if color_channel < 1:
+            return 1
+        elif color_channel >255:
+            return 255
+        else:
+            return color_channel
+    
+    # Create a gradient with two RGB colors between "pixel1" and "pixel2" (inclusive)
     def set_pixel_line_gradient(self, pixel1, pixel2, left_red, left_green, left_blue, right_red, right_green, right_blue):
         if pixel2 - pixel1 == 0: return
-    
+        
         right_pixel = max(pixel1, pixel2)
         left_pixel = min(pixel1, pixel2)
         
@@ -54,37 +64,43 @@ class ws2812b:
             
             self.set_pixel(left_pixel + i, red, green, blue)
     
-      # Set an array of pixels starting from "pixel1" to "pixel2" to the desired color.
+    # Set an array of pixels starting from "pixel1" to "pixel2" to the desired color.
     def set_pixel_line(self, pixel1, pixel2, red, green, blue):
         for i in range(pixel1, pixel2+1):
             self.set_pixel(i, red, green, blue)
-
+    
     def set_pixel(self, pixel_num, red, green, blue):
+        # Adjust each color values if out of range. (but checking color in this function is inefficient) by LeiLei 
+        red = self.check_pixel_color_value(red)
+        green = self.check_pixel_color_value(green)
+        blue = self.check_pixel_color_value(blue)
+        
         # Adjust color values with brightnesslevel
-        blue = round(blue * (self.brightness() / 255))
         red = round(red * (self.brightness() / 255))
         green = round(green * (self.brightness() / 255))
-
-        self.pixels[pixel_num] = blue | red << 8 | green << 16
+        blue = round(blue * (self.brightness() / 255))
+        
+        # Fixed the order of RGB colors by LeiLei
+        self.pixels[pixel_num] = blue | green << 8 | red << 16
     
     # rotate x pixels to the left
     def rotate_left(self, num_of_pixels):
         if num_of_pixels == None:
             num_of_pixels = 1
         self.pixels = self.pixels[num_of_pixels:] + self.pixels[:num_of_pixels]
-
+    
     # rotate x pixels to the right
     def rotate_right(self, num_of_pixels):
         if num_of_pixels == None:
             num_of_pixels = 1
         num_of_pixels = -1 * num_of_pixels
         self.pixels = self.pixels[num_of_pixels:] + self.pixels[:num_of_pixels]
-
+    
     def show(self):
         for i in range(self.num_leds):
             self.sm.put(self.pixels[i],8)
         time.sleep(self.delay)
-            
+    
     def fill(self, red, green, blue):
         for i in range(self.num_leds):
             self.set_pixel(i, red, green, blue)
