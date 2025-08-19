@@ -80,7 +80,7 @@ class ws2812b:
         green = round(green * (self.brightness() / 255))
         blue = round(blue * (self.brightness() / 255))
         
-        # Fixed the order of RGB colors by LeiLei
+        # Fixed the order of RGB colors on RP2040-Zero Board by LeiLei
         self.pixels[pixel_num] = blue | green << 8 | red << 16
     
     # rotate x pixels to the left
